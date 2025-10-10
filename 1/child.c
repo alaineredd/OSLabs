@@ -1,19 +1,13 @@
+#include "os.h"
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <ctype.h>
-#include <unistd.h>
 
 #define BUFFERSIZE 256
 
-int main(int argc, char *argv[]) { // argv [0] - child, [1] - filename
+int main(int argc, char* argv[]) { // argv [0] - child, [1] - filename
     char buffer[BUFFERSIZE];
     FILE* file;
-
-    if (argc != 2) {
-    fprintf(stderr, "Usage: %s filename\n", argv[0]);
-    exit(1);
-}
 
     file = fopen(argv[1], "w");
     if(file == NULL) {
