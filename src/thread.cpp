@@ -9,7 +9,6 @@ namespace thread{
 struct ThreadData
 {
     pthread_t thread = 0;
-    bool is_running = false;
 };
 
 Thread::Thread(ThreadFunc func) : func_(func) {
@@ -28,7 +27,6 @@ void Thread::Detach() {
     if(code != 0) {
         throw std::runtime_error("thread detach error");
     }
-    data_->is_running = false;
 }
 
 Thread::Thread(Thread&& other) noexcept : func_(other.func_), data_(other.data_) {
