@@ -24,8 +24,7 @@ public:
     ~OSLinux() override {
         cleanupResources();
     }
-    
-    // Shared Memory
+
     bool createSharedMemory(const std::string& name, size_t size) override {
         shm_fd = shm_open(name.c_str(), O_CREAT | O_RDWR, 0666);
         if (shm_fd == -1) {
@@ -78,8 +77,7 @@ public:
     void destroySharedMemory(const std::string& name) override {
         shm_unlink(name.c_str());
     }
-    
-    // Semaphores
+
     bool createSemaphore(const std::string& name) override {
         semaphore = sem_open(name.c_str(), O_CREAT, 0644, 1);
         if (semaphore == SEM_FAILED) {
@@ -121,7 +119,6 @@ public:
         sem_unlink(name.c_str());
     }
     
-    // Threads
     void* createThread(void* (*start_routine)(void*), void* arg) override {
         pthread_t* thread = new pthread_t;
         if (pthread_create(thread, nullptr, start_routine, arg) != 0) {
@@ -144,7 +141,6 @@ public:
         }
     }
     
-    // Sleep/Delay
     void sleepMilliseconds(unsigned int ms) override {
         usleep(ms * 1000);
     }
@@ -153,7 +149,6 @@ public:
         usleep(us);
     }
     
-    // Signals
     static void signalHandlerWrapper(int sig) {
         // Этот обработчик будет установлен через sigaction
         // Реальный обработчик будет вызываться из setupSignalHandler
@@ -176,20 +171,17 @@ public:
         setupSignalHandler(OSSignals::SIG_INT, handler);
     }
     
-    // File operations
     bool fileExists(const std::string& path) override {
         return access(path.c_str(), F_OK) != -1;
     }
     
-    // System info
     std::string getOSName() override {
         return "Linux";
     }
-    
-    // Cleanup
+
     void cleanupResources() override {
         if (resources_cleaned.exchange(true)) {
-            return; // Already cleaned
+            return;
         }
         
         unmapSharedMemory();
@@ -198,7 +190,6 @@ public:
     }
 };
 
-// Реализация фабрики
 std::unique_ptr<OSInterface> OSFactory::create(OSType type) {
     switch (type) {
         case OS_LINUX:
@@ -217,13 +208,5 @@ std::unique_ptr<OSInterface> OSFactory::createForCurrentOS() {
 }
 
 OSFactory::OSType OSFactory::detectOS() {
-    #ifdef __linux__
-        return OS_LINUX;
-    #elif defined(_WIN32) || defined(_WIN64)
-        return OS_WINDOWS;
-    #elif defined(__APPLE__)
-        return OS_MACOS;
-    #else
-        return OS_LINUX; // Default to Linux for other Unix-like systems
-    #endif
+    return OS_LINUX;
 }
