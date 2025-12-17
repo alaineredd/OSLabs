@@ -20,6 +20,7 @@ struct Game {
     std::map<std::string, std::string> guesses;
     bool gameOver;
     std::string winner;
+    int maxPlayers;
 };
 
 struct ThreadArgs {
@@ -185,7 +186,27 @@ public:
         }
     }
     
-    void createGame(const std::string& playerName, const std::string& gameName, std::string& response) {
+    void createGame(const std::string& playerName, const std::string& data_msg, std::string& response) {
+        size_t pos = data_msg.find('|');
+        if (pos == std::string::npos) {
+            response = "ERROR|Invalid create game format";
+            return;
+        }
+        
+        std::string gameName = data_msg.substr(0, pos);
+        int maxPlayers;
+        try {
+            maxPlayers = std::stoi(data_msg.substr(pos + 1));
+        } catch (const std::exception& e) {
+            response = "ERROR|Invalid max players value";
+            return;
+        }
+        
+        if (maxPlayers < 1 || maxPlayers > 10) {
+            response = "ERROR|Max players must be between 1 and 10";
+            return;
+        }
+        
         if (games.find(gameName) != games.end()) {
             response = "ERROR|Game already exists";
             return;
@@ -196,10 +217,12 @@ public:
         newGame.secretWord = getRandomWord();
         newGame.players.insert(playerName);
         newGame.gameOver = false;
+        newGame.maxPlayers = maxPlayers;
         
         games[gameName] = newGame;
-        std::cout << "[SERVER] Game '" << gameName << "' created with secret word: " << newGame.secretWord << std::endl;
-        response = "OK|Game created|Secret word set";
+        std::cout << "[SERVER] Game '" << gameName << "' created with secret word: " 
+                  << newGame.secretWord << ", max players: " << maxPlayers << std::endl;
+        response = "OK|Game created|Secret word set|Max players: " + std::to_string(maxPlayers);
     }
     
     void joinGame(const std::string& playerName, const std::string& gameName, std::string& response) {
@@ -214,8 +237,15 @@ public:
             return;
         }
         
+        if (it->second.players.size() >= static_cast<size_t>(it->second.maxPlayers)) {
+            response = "ERROR|Game is full|Current players: " + std::to_string(it->second.players.size()) +
+                      "|Max players: " + std::to_string(it->second.maxPlayers);
+            return;
+        }
+        
         it->second.players.insert(playerName);
-        response = "OK|Joined game|Players: " + std::to_string(it->second.players.size());
+        response = "OK|Joined game|Current players: " + std::to_string(it->second.players.size()) +
+                  "|Max players: " + std::to_string(it->second.maxPlayers);
     }
     
     void processGuess(const std::string& playerName, const std::string& data_msg, std::string& response) {
@@ -274,7 +304,8 @@ public:
         response = "LIST";
         for (const auto& [name, game] : games) {
             response += "|" + name + " (" + std::to_string(game.players.size()) + 
-                       " players)" + (game.gameOver ? " [Finished]" : "");
+                       "/" + std::to_string(game.maxPlayers) + " players)" + 
+                       (game.gameOver ? " [Finished]" : "");
         }
     }
     
@@ -292,7 +323,8 @@ public:
             games.erase(it);
             response = "OK|Game removed";
         } else {
-            response = "OK|Left game|Remaining players: " + std::to_string(it->second.players.size());
+            response = "OK|Left game|Remaining players: " + std::to_string(it->second.players.size()) +
+                      "|Max players: " + std::to_string(it->second.maxPlayers);
         }
     }
     
@@ -304,6 +336,7 @@ public:
         }
         
         response = "STATUS|Players: " + std::to_string(it->second.players.size()) +
+                  "/" + std::to_string(it->second.maxPlayers) +
                   "|Game over: " + std::string(it->second.gameOver ? "Yes" : "No");
         
         if (it->second.gameOver) {

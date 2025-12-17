@@ -109,7 +109,7 @@ public:
     }
     
     bool connect() {
-            if (!os->openSharedMemory(SharedResources::SHARED_MEMORY_REQUEST)) {
+        if (!os->openSharedMemory(SharedResources::SHARED_MEMORY_REQUEST)) {
             std::cerr << "[CLIENT] Failed to open request shared memory" << std::endl;
             return false;
         }
@@ -199,14 +199,23 @@ public:
             return;
         }
         
-        std::string message = playerName + "|CREATE|" + gameName;
+        int maxPlayers;
+        std::cout << "Enter maximum number of players (1-10): ";
+        std::cin >> maxPlayers;
+        
+        if (maxPlayers < 1 || maxPlayers > 10) {
+            std::cout << "Maximum players must be between 1 and 10!" << std::endl;
+            return;
+        }
+        
+        std::string message = playerName + "|CREATE|" + gameName + "|" + std::to_string(maxPlayers);
         std::string response = sendAndReceive(message);
         
         std::cout << "Server response:\n" << parseResponse(response) << std::endl;
         
         if (response.find("OK") == 0) {
             currentGame = gameName;
-            std::cout << "✓ Game '" << gameName << "' created successfully!" << std::endl;
+            std::cout << "✓ Game '" << gameName << "' created successfully for " << maxPlayers << " players!" << std::endl;
         }
     }
     
